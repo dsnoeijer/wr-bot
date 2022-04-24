@@ -16,7 +16,7 @@
   },
   "scripts": {
     "start": "npm-run-all site trivia",
-    "site": "node app.js; trivia.js",
+    "site": "node app.js",
     "trivia": "node trivia.js"
   }
 }
