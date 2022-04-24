@@ -408,13 +408,16 @@ function askQuestion() {
 					console.log(localize("c_attachmentFailure", "${filename}", filename));
 				} else {
 
+					const attachment = new Discord.MessageAttachment(image, filename);
+
 					const embed = new Discord.MessageEmbed()
 						.setColor(0x3498DB)
 						.setTitle(`Question ${(questionNum - startQuestionNum).toString()} of ${settings.maxQuestionNum}`)
 						.setDescription("Category", "Zones")
 						.addField("Question", `**${questionText}**`)
 						// .setDescription(`**${questionText}**`)
-						.setImage(`${image}`)
+						.attachFiles(attachment)
+						.setImage(`attachment://${filename}`)
 						.setTimestamp()
 						.setFooter("WoW Realms Trivia Bot v1.0");
 
