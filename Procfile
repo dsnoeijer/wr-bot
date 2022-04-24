@@ -1,0 +1,1 @@
+web: npm-run-all start trivia

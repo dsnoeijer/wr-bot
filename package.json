@@ -9,11 +9,13 @@
     "discord.js": "^12.4.1",
     "ejs": "^3.1.7",
     "express": "^4.17.3",
+    "npm-run-all": "^4.1.5",
     "path": "^0.12.7",
     "readline": "^1.3.0",
     "request": "^2.88.2"
   },
   "scripts": {
-    "start": "node app.js; trivia.js"
+    "start": "node app.js; trivia.js",
+    "trivia": "node trivia.js"
   }
 }
