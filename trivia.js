@@ -32,10 +32,14 @@ const readline = require("readline");
 const crypto = require("crypto");
 const bot = new Discord.Client();
 const rl = readline.createInterface(process.stdin, process.stdout);
+const getToken = require('./token.json');
 rl.setPrompt("");
 
 var versionString = "1.0";
 console.log("The trivia bot has been launched. (v" + versionString + ")");
+
+const token = getToken.token;
+console.log(token);
 
 // load settings from settings.txt
 var settings = {};
@@ -66,10 +70,11 @@ try {
 		triviaChannel: "",
 		musicChannel: "",
 		schedule: [],
-		token: "",
 		debug: false
 	}
 }
+
+
 
 try {
 	local = JSON.parse("{" + fs.readFileSync("local_" + settings.lang + ".txt", "utf8").replace(/^\uFEFF/, '') + "}");
@@ -387,7 +392,7 @@ function askQuestion() {
 	// continue unless we've reached maxQuestionNum
 	if (questionNum < (settings.maxQuestionNum + tieQuestionNum) && trivia) {
 		if (attempts > 0) {
-			bot.login(settings.token).then(() => {
+			bot.login(token).then(() => {
 				attempts = 0;
 			}).catch(err => {
 				reconnect();
@@ -1498,7 +1503,7 @@ bot.on('ready', () => {
 });
 
 questionNum--;
-bot.login(settings.token).catch(err => {
+bot.login(token).catch(err => {
 	console.log(localize("c_loginError"));
 	process.exit();
 });

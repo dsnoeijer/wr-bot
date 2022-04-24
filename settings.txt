@@ -17,5 +17,4 @@
 "allowedChannels": ["testing-bot"],
 "triviaChannel": "964259808402358285",
 "musicChannel": null,
-"schedule": [],
-"token": ""
+"schedule": []
