@@ -2,7 +2,7 @@
   "name": "wow-realms-trivia-bot",
   "version": "1.0",
   "engines": {
-    "node": "16.x"
+    "node": "16.14.2"
   },
   "dependencies": {
     "discord.js": "^12.4.1",
