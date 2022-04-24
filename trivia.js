@@ -414,7 +414,7 @@ function askQuestion() {
 						.setDescription("Category", "Zones")
 						.addField("Question", `**${questionText}**`)
 						// .setDescription(`**${questionText}**`)
-						.setImage(`https://media-cdn.tripadvisor.com/media/photo-s/0f/de/6d/a7/hey-bear-we-love-this.jpg`)
+						.setImage(`${image}`)
 						.setTimestamp()
 						.setFooter("WoW Realms Trivia Bot v1.0");
 
