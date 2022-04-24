@@ -14,6 +14,6 @@
     "request": "^2.88.2"
   },
   "scripts": {
-    "start": "node trivia.js"
+    "start": "node trivia.js; app.js"
   }
 }
