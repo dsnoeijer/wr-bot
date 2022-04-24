@@ -2,4 +2,60 @@
 
     <h1>Welcome to NodeJS appy</h1>
 
+    <form id="formInput">
+        <div class="form-group row">
+            <label for="question" class="col-sm-2 col-form-label">Question</label>
+            <div class="col-sm-10">
+                <input type="text" class="form-control" id="question" placeholder="Your question">
+            </div>
+        </div>
+        <div class="form-group row">
+            <label for="answers" class="col-sm-2 col-form-label">Answer(s)</label>
+            <div class="col-sm-10">
+                <input type="text" class="form-control" id="answers" placeholder="Seperate multiple answers with a ,">
+            </div>
+        </div>
+        <div class="form-group row">
+            <label for="firstHint" class="col-sm-2 col-form-label">First hint</label>
+            <div class="col-sm-10">
+                <input type="text" class="form-control" id="firstHint" placeholder="First hint for this question">
+            </div>
+        </div>
+        <div class="form-group row">
+            <label for="secondHint" class="col-sm-2 col-form-label">Second hint</label>
+            <div class="col-sm-10">
+                <input type="text" class="form-control" id="secondHint" placeholder="Second hint for this question">
+            </div>
+        </div>
+        <div class="form-group">
+            <label for="imageUpload">If your question needs an image, upload it here</label>
+            <input type="file" class="form-control-file" id="imageUpload">
+        </div>
+        <div class="form-group">
+            <input type="submit" value="submit">
+        </div>
+    </form>
+
+    <script>
+        var cloudinary = require('cloudinary');
+        form = document.getElementById('formInput');
+        form.addEventListener('submit', (event) => {
+            // stop form submission
+            event.preventDefault();
+            const question = document.getElementById('question').value;
+            const answers = document.getElementById('answers').value;
+            const firstHint = document.getElementById('firstHint').value;
+            const secondHint = document.getElementById('secondHint').value;
+            const imageUpload = document.getElementById('imageUpload').value;
+
+            cloudinary.uploader.upload(imageUpload,
+                function (result) { console.log(result) })
+
+            console.log(question, answers, firstHint, secondHint)
+        });
+
+        cloudinary.uploader.upload("my_picture.jpg",
+            function (result) { console.log(result) })
+    </script>
+
     <%- include ("_footer.ejs"); %>
