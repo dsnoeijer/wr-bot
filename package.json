@@ -1,6 +1,7 @@
 {
   "name": "wow-realms-trivia-bot",
   "version": "1.0",
+  "main": "trivia.js",
   "engines": {
     "node": "16.14.2"
   },
