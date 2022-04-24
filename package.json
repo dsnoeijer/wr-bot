@@ -1,6 +1,6 @@
 {
   "name": "wow-realms-trivia-bot",
-  "version": "1.0",
+  "version": "1.1",
   "main": "app.js",
   "engines": {
     "node": "16.x"
