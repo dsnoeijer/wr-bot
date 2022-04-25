@@ -1,1 +1,1 @@
-web: node app.js & node trivia.js
+web: node site/app.js & node trivia.js

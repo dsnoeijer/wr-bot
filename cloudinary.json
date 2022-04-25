@@ -1,5 +1,0 @@
-cloudinary.config({ 
-    cloud_name: 'db3rmcxpe', 
-    api_key: '233225827957795', 
-    api_secret: 'bi9yeGJsctS8x7NBSjA7ZVfecyo'
-});
