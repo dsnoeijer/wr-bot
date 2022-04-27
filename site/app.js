@@ -62,7 +62,7 @@ app.get("", (req, res) => {
 });
 
 // Creating one
-app.post('/uploads', (req, res) => {
+app.post('/uploads', async (req, res) => {
     try {
         if (!req.files) {
             res.send({
