@@ -9,6 +9,9 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const morgan = require('morgan');
 const _ = require('lodash');
+const mongoose = require('mongoose');
+const Questions = require('./models/questions');
+
 
 // app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -24,38 +27,76 @@ app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "./views"));
 app.use("/uploads", express.static(__dirname + '/uploads'));
 
+// DB Stuff
+mongoose.connect('mongodb://localhost/', { useNewUrlParser: true });
+const db = mongoose.connection;
+db.on('error', (error) => console.error(error));
+db.once('open', () => console.log('Connected to DB'));
+
+app.use(express.json());
+
+// Getting all
+app.get('/questions', async (req, res) => {
+    try {
+        const questions = await Questions.find();
+        res.json(questions);
+    } catch {
+        res.status(500).json({ message: err.messge });
+    }
+})
+// Getting one
+app.get('/question', (req, res) => {
+    res.render("home");
+})
+// Updating one
+app.post('/update', (req, res) => {
+
+})
+// Deleting one
+app.get('/delete/:id', (req, res) => {
+    res.send(req.params.id);
+})
+
 app.get("", (req, res) => {
     res.render("home");
 });
 
+// Creating one
 app.post('/uploads', async (req, res) => {
-    try {
-        if (!req.files) {
-            res.send({
-                status: false,
-                message: 'No file uploaded'
-            });
-        } else {
-            //Use the name of the input field (i.e. "avatar") to retrieve the uploaded file
-            let avatar = req.files.imageUpload;
-
-            //Use the mv() method to place the file in upload directory (i.e. "uploads")
-            avatar.mv('./uploads/' + avatar.name);
-
-            //send response
-            res.send({
-                status: true,
-                message: 'File is uploaded',
-                data: {
-                    name: avatar.name,
-                    mimetype: avatar.mimetype,
-                    size: avatar.size
-                }
-            });
-        }
-    } catch (err) {
-        res.status(500).send(err);
+    // try {
+    if (!req.files) {
+        console.log("FAILED");
+    } else {
+        console.log(req.files);
     }
+
+    //     if (!req.files) {
+    //         res.send({
+    //             status: false,
+    //             message: 'No file uploaded'
+    //         });
+    //     } else {
+    //         //Use the name of the input field (i.e. "avatar") to retrieve the uploaded file
+    //         let avatar = req.files.imageUpload;
+
+    //         //Use the mv() method to place the file in upload directory (i.e. "uploads")
+    //         avatar.mv('./uploads/' + avatar.name);
+
+
+    //         //send response
+    //         res.send({
+    //             status: true,
+    //             message: 'File is uploaded',
+    //             data: {
+    //                 name: avatar.name,
+    //                 mimetype: avatar.mimetype,
+    //                 size: avatar.size
+    //             }
+    //         });
+    //     }
+    // } catch (err) {
+    //     res.status(500).send(err);
+    // }
 });
 
 app.listen(port, () => {
