@@ -62,41 +62,35 @@ app.get("", (req, res) => {
 });
 
 // Creating one
-app.post('/uploads', async (req, res) => {
-    // try {
-    if (!req.files) {
-        console.log("FAILED");
-    } else {
-        console.log(req.files);
+app.post('/uploads', (req, res) => {
+    try {
+        if (!req.files) {
+            res.send({
+                status: false,
+                message: 'No file uploaded'
+            });
+        } else {
+            //Use the name of the input field (i.e. "avatar") to retrieve the uploaded file
+            let avatar = req.files.imageUpload;
+
+            //Use the mv() method to place the file in upload directory (i.e. "uploads")
+            avatar.mv('./uploads/' + avatar.name);
+
+
+            //send response
+            res.send({
+                status: true,
+                message: 'File is uploaded',
+                data: {
+                    name: avatar.name,
+                    mimetype: avatar.mimetype,
+                    size: avatar.size
+                }
+            });
+        }
+    } catch (err) {
+        res.status(500).send(err);
     }
-
-    //     if (!req.files) {
-    //         res.send({
-    //             status: false,
-    //             message: 'No file uploaded'
-    //         });
-    //     } else {
-    //         //Use the name of the input field (i.e. "avatar") to retrieve the uploaded file
-    //         let avatar = req.files.imageUpload;
-
-    //         //Use the mv() method to place the file in upload directory (i.e. "uploads")
-    //         avatar.mv('./uploads/' + avatar.name);
-
-
-    //         //send response
-    //         res.send({
-    //             status: true,
-    //             message: 'File is uploaded',
-    //             data: {
-    //                 name: avatar.name,
-    //                 mimetype: avatar.mimetype,
-    //                 size: avatar.size
-    //             }
-    //         });
-    //     }
-    // } catch (err) {
-    //     res.status(500).send(err);
-    // }
 });
 
 app.listen(port, () => {
