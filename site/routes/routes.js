@@ -2,10 +2,15 @@ var express = require('express');
 var router = express.Router();
 const multer = require('multer');
 const upload = multer({ dest: 'uploads/' });
-const Questions = require('../models/questions');
+const addQuestions = require('../controllers/addQuestion');
 
 
-// Getting all
+// Home page
+router.get("/", (req, res) => {
+    res.render("home");
+});
+
+// Getting all questions
 router.get('/questions', async (req, res) => {
     try {
         const questions = await Questions.find();
@@ -14,32 +19,27 @@ router.get('/questions', async (req, res) => {
         res.status(500).json({ message: err.messge });
     }
 })
-// Getting one
+
+// Getting one question
 router.get('/question', (req, res) => {
     res.render("home");
 })
-// Updating one
+
+// Updating a question
 router.post('/update', (req, res) => {
 
 })
-// Deleting one
+// Deleting a question
 router.get('/delete/:id', (req, res) => {
     res.send(req.params.id);
 })
 
-// Home page
-router.get("/", (req, res) => {
-    res.render("home");
-});
+// Creating a question
+router.get("/add", (req, res) => {
+    res.render("add")
+})
 
-
-const uploadFiles = (req, res) => {
-    console.log(req.body);
-    console.log(req.files);
-    res.json({ message: "Succesfully added question." });
-}
-
-// Creating one
-router.post("/uploads", upload.array("files"), uploadFiles);
+// Adding a question
+router.post("/uploads", upload.array("files"), addQuestions.addQuestion);
 
 module.exports = router;

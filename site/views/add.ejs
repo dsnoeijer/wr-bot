@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>Wow Realms Trivia Bot</title>
+    <title>WoW Realms Trivia Bot - Add a Question</title>
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
     <meta name="description" content="">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -42,25 +42,32 @@
             <div class="form-group row">
                 <label for="firstHint" class="col-sm-2 col-form-label">First hint</label>
                 <div class="col-sm-10">
-                    <input type="text" class="form-control" id="firstHint" placeholder="First hint for this question">
+                    <input type="text" class="form-control" id="firstHint"
+                        placeholder="First hint for this question. Insert an answer and click scramble if you don't have a hint">
+                    <button id="scramble">Scramble</button>
                 </div>
             </div>
             <div class="form-group row">
                 <label for="secondHint" class="col-sm-2 col-form-label">Second hint</label>
                 <div class="col-sm-10">
-                    <input type="text" class="form-control" id="secondHint" placeholder="Second hint for this question">
+                    <input type="text" class="form-control" id="secondHint"
+                        placeholder="Second hint for this question. Insert an answer and click blanks to generate a hint with blank spaces.">
+                    <button id="blanks">Blanks</button>
                 </div>
             </div>
+            <br>
             <div class="form-group">
                 <label for="imageUpload">If your question needs an image, upload it here</label>
                 <input type="file" class="form-control-file" id="files">
             </div>
+            <br>
             <div class="form-group">
                 <input type="submit" value="submit" id="formSubmit">
             </div>
         </form>
     </div>
     <script type="text/javascript" src="script.js"></script>
+    <script type="text/javascript" src="answers.js"></script>
 </body>
 
 </html>

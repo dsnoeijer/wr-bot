@@ -14,9 +14,7 @@ const questionsSchema = new mongoose.Schema({
         required: true
     },
     answer: {
-        type: [{
-            type: String
-        }],
+        type: String,
         required: true
     },
     firstHint: {
