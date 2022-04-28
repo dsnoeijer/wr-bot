@@ -1,5 +1,3 @@
-"filepath": "./testimage.json",
-"imagePath": "./img/",
 "lang": "en",
 "anyoneStart": false,
 "anyoneStop": false,
