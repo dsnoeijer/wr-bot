@@ -1,4 +1,4 @@
-﻿// Trivia bot for Discord chat
+﻿// Trivia bot for Discord
 const Discord = require("discord.js");
 const fs = require("fs");
 const path = require("path");
@@ -7,14 +7,11 @@ const readline = require("readline");
 const crypto = require("crypto");
 const bot = new Discord.Client();
 const rl = readline.createInterface(process.stdin, process.stdout);
-// const getToken = require('token.json');
+
 rl.setPrompt("");
 
 var versionString = "1.0";
 console.log("The trivia bot has been launched. (v" + versionString + ")");
-
-// const token = getToken.token;
-// console.log(token);
 
 // load settings from settings.txt
 var settings = {};
@@ -25,8 +22,6 @@ try {
 } catch (err) {
 	console.log("settings.txt error! Loading default settings...");
 	settings = {
-		filepath: "./trivia.json",
-		imagePath: "./img/",
 		lang: "en",
 		anyoneStart: false,
 		anyoneStop: false,
@@ -49,8 +44,6 @@ try {
 		token: ""
 	}
 }
-
-
 
 try {
 	local = JSON.parse("{" + fs.readFileSync("local_" + settings.lang + ".txt", "utf8").replace(/^\uFEFF/, '') + "}");
