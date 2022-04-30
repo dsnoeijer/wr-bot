@@ -16,4 +16,4 @@
 "triviaChannel": "964259808402358285",
 "musicChannel": null,
 "schedule": [],
-"token": ""
+"token": "DISCORD_TOKEN"
