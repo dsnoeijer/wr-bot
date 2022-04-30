@@ -25,6 +25,10 @@ const questionsSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    imageUrl: {
+        type: String,
+        required: false
+    },
     addedDate: {
         type: Date,
         required: true,
@@ -32,7 +36,8 @@ const questionsSchema = new mongoose.Schema({
     },
     lastUpdated: {
         type: Date,
-        required: false
+        required: true,
+        default: Date.now()
     }
 })
 

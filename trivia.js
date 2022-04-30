@@ -5,8 +5,13 @@ const path = require("path");
 const request = require("request");
 const readline = require("readline");
 const crypto = require("crypto");
+const { getQuestion } = require("./site/controllers/getQuestion");
+const { query } = require("express");
+const { response } = require("express");
 const bot = new Discord.Client();
 const rl = readline.createInterface(process.stdin, process.stdout);
+const axios = require('axios');
+
 
 rl.setPrompt("");
 
@@ -31,12 +36,12 @@ try {
 		containsAnswer: false,
 		tts: false,
 		startTime: 5000,
-		hintTime: 30000,
-		skipTime: 45000,
-		betweenTime: 15000,
+		hintTime: 10000,
+		skipTime: 20000,
+		betweenTime: 10000,
 		downloadUrl: "null",
 		maxQuestionNum: 150,
-		allowedChannels: ["trivia"],
+		allowedChannels: ["trivia", "bot-testing"],
 		triviaChannel: "",
 		musicChannel: "",
 		schedule: [],
@@ -105,17 +110,90 @@ var topTen = localize("d_topTenDefault");
 var resultsFilename = "";
 
 function getLine() {
-	var data;
-	try {
-		data = require(settings.filepath);
-	} catch (err) {
-		console.log(localize("c_fileReadError"));
-		data = "null*null";
-	}
 
-	randNum = Math.floor(Math.random() * settings.maxQuestionNum);
-	question = data.questions[randNum];
-	return question;
+	let host = 'http://localhost:3000/question';
+	axios.get(host)
+		.then((data) => {
+			console.log(data.data);
+			// console.log('There be data here:', data.data);
+			let getNextQuestion = data.data[0];
+			questionNum++;
+			var questionText = getNextQuestion.title;
+			getAnswers = getNextQuestion.answer.split(",");
+
+			for (const answer in getAnswers) {
+				answerArray.push(getAnswers[answer]);
+			}
+
+			answerText = getAnswers[0];
+
+			let checkImage = getNextQuestion['imageUrl'];
+
+			if (checkImage !== '') { // if there's an image attachment
+				image = `site/${getNextQuestion.imageUrl}`;
+				getFilename = getNextQuestion.imageUrl.split('/');
+				filename = getFilename[1];
+
+				fs.readFile(image, (err, data) => {
+					if (err) {
+						console.log(localize("c_attachmentFailure", filename));
+					} else {
+
+						const attachment = new Discord.MessageAttachment(image);
+
+						const embed = new Discord.MessageEmbed()
+							.setColor(0x3498DB)
+							.setTitle(`Question ${(questionNum - startQuestionNum).toString()} of ${settings.maxQuestionNum}`)
+							.setDescription("Category", "Zones")
+							.addField("Question", `**${questionText}**`)
+							// .setDescription(`**${questionText}**`)
+							.attachFiles(attachment)
+							.setImage(`attachment://${filename}`)
+							.setTimestamp()
+							.setFooter("WoW Realms Trivia Bot v1.0");
+
+						triviaChannel.send({ embed: embed }).then(questionMessage => {
+							// triviaChannel.send(`${(questionNum - startQuestionNum).toString()}. **${questionText}**`, new Discord.MessageAttachment(data, `${image}`)).then(questionMessage => {
+							attempts = 0;
+							console.log(questionText);
+							console.log(answerArray);
+							questionTimestamp = questionMessage.createdTimestamp;
+							console.log(questionTimestamp);
+							answered = false;
+						}).catch(err => {
+							console.log(localize("c_attachmentFailure", "${filename}", filename));
+							triviaChannel.send(`${(questionNum - startQuestionNum).toString()}. **${questionText}**`).then(questionMessage => {
+								attempts = 0;
+								console.log(questionText);
+								console.log(answerArray);
+								questionTimestamp = questionMessage.createdTimestamp;
+								console.log(questionTimestamp);
+								answered = false;
+							}).catch(err => {
+								questionNum--;
+								reconnect();
+							});
+						});
+					}
+				});
+			} else { // if there's no attachment
+				triviaChannel.send(`${(questionNum - startQuestionNum).toString()}. **${questionText}**`).then(questionMessage => {
+					attempts = 0;
+					console.log(questionText);
+					console.log(answerArray);
+					questionTimestamp = questionMessage.createdTimestamp;
+					console.log(questionTimestamp);
+					answered = false;
+				}).catch(err => {
+					questionNum--;
+					reconnect();
+				});
+			}
+			hintTimeout = setInterval(hint, settings.hintTime, getNextQuestion);
+			skipTimeout = setTimeout(skipQuestion, settings.skipTime + 350);
+		})
+
+
 }
 
 function localize(line, arg1a, arg1b, arg2a, arg2b, arg3a, arg3b, arg4a, arg4b) {
@@ -212,13 +290,6 @@ function endTrivia(finished) {
 		var bestStreak = streaks.indexOf(Math.max.apply(Math, streaks)); // get index of player with best streak
 		var bestBestTime = bestTimes.indexOf(Math.min.apply(Math, bestTimes)); // get index of player with best best time
 		var bestAvgTime = avgTimes.indexOf(Math.min.apply(Math, avgTimes)); // get index of player with best average time
-
-		if (players.length > 0) {
-			triviaChannel.send(((typeof players[0] !== "undefined") ? `**${localize("t_first")}**: <@${players[0].id}> **${localize("t_points")}**: ${players[0].score} **${localize("t_bestStreak")}**: ${players[0].streak} **${localize("t_avgTime")}**: ${(players[0].time / players[0].score / 1000).toFixed(3)} ${localize("t_sec")} **${localize("t_bestTime")}**: ${(players[0].bestTime / 1000).toFixed(3)} ${localize("t_sec")}\n` + ((typeof players[1] !== "undefined") ? `**${localize("t_second")}**: <@${players[1].id}> **${localize("t_points")}**: ${players[1].score} **${localize("t_bestStreak")}**: ${players[1].streak} **${localize("t_avgTime")}**: ${(players[1].time / players[1].score / 1000).toFixed(3)} ${localize("t_sec")} **${localize("t_bestTime")}**: ${(players[1].bestTime / 1000).toFixed(3)} ${localize("t_sec")}\n` : "") + ((typeof players[2] !== "undefined") ? `**${localize("t_third")}**: <@${players[2].id}> **${localize("t_points")}**: ${players[2].score} **${localize("t_bestStreak")}**: ${players[2].streak} **${localize("t_avgTime")}**: ${(players[2].time / players[2].score / 1000).toFixed(3)} ${localize("t_sec")} **${localize("t_bestTime")}**: ${(players[2].bestTime / 1000).toFixed(3)} ${localize("t_sec")}\n` : "") + `\n**${localize("t_bestBestStreak")}**: <@${players[bestStreak].id}> ${localize("t_with")} ${players[bestStreak].streak}\n**${localize("t_bestBestTime")}**: <@${players[bestBestTime].id}> ${localize("t_with")} ${(players[bestBestTime].bestTime / 1000).toFixed(3)} ${localize("t_sec")}\n**${localize("t_bestAvgTime")}**: <@${players[bestAvgTime].id}> ${localize("t_with")} ${(players[bestAvgTime].time / players[bestAvgTime].score / 1000).toFixed(3)} ${localize("t_sec")}` : ""));
-			bot.users.fetch(players[0].id).then((user) => {
-				user.send(localize("d_winner"));
-			});
-		}
 	}
 
 	trivia = false;
@@ -228,7 +299,7 @@ function endTrivia(finished) {
 	console.log(localize("t_second") + ": " + ((typeof players[1] !== "undefined") ? `${players[1].name} <@${players[1].id}> ${localize("t_points")}: ${players[1].score} ${localize("t_bestTime")}: ${players[1].bestTime / 1000}` : localize("t_noOne")));
 	console.log(localize("t_third") + ": " + ((typeof players[2] !== "undefined") ? `${players[2].name} <@${players[2].id}> ${localize("t_points")}: ${players[2].score} ${localize("t_bestTime")}: ${players[2].bestTime / 1000}` : localize("t_noOne")));
 
-	checkSchedule();
+	// checkSchedule();
 }
 
 function outputScores(debug) {
@@ -280,35 +351,6 @@ function downloadQuestions(callback) {
 			callback(startTrivia);
 		}
 	});
-}
-
-function randRange(n) {
-	// return Math.floor(Math.random() * n);
-	var limit = Math.pow(2, 32) - (Math.pow(2, 32) % n);
-	var rand = parseInt(crypto.randomBytes(4).toString('hex'), 16);
-	while (rand >= limit) {
-		rand = parseInt(crypto.randomBytes(4).toString('hex'), 16);
-	}
-	return Math.floor(rand / Math.pow(2, 32) * n);
-}
-
-function randomizeQuestions(callback) {
-	var data;
-	try {
-		data = require(settings.filepath);
-	} catch (err) {
-		console.log(localize("c_fileReadError"));
-		data = "null*null";
-	}
-
-	for (let i = settings.maxQuestionNum; i < settings.maxQuestionNum; i++) {
-		randNum = Math.floor(Math.random() * settings.maxQuestionNum);
-		question = data.questions[randNum];
-		console.log(question);
-	}
-	if (typeof callback === "function") {
-		callback();
-	}
 }
 
 function clean(unclean) {
@@ -372,141 +414,44 @@ function askQuestion() {
 			}
 		}
 
-		var line = getLine();
-		questionNum++;
-		var questionText = question['question'];
-
-		for (const ans in question['answer']) {
-			answerArray.push(question['answer'][ans]);
-		}
-
-
-		// if (line.indexOf("<") !== -1 && line.indexOf(">") !== -1) { // if there's an answer attachment
-		// 	answerImage = line.match(/\<(.*)\>/)[1];
-		// 	console.log(answerImage);
-		// } else {
-		// 	answerImage = "";
-		// }
-		let checkImage = question['image'];
-
-		if (checkImage !== 0) { // if there's an image attachment
-			console.log(`checkImage value: ${checkImage}`);
-			filename = checkImage;
-			console.log(`filename: ${filename}`);
-			image = settings.imagePath + filename;
-			console.log(`full path: ${image}`)
-
-			fs.readFile(image, (err, data) => {
-				if (err) {
-					console.log(localize("c_attachmentFailure", "${filename}", filename));
-				} else {
-
-					const attachment = new Discord.MessageAttachment(image, filename);
-
-					const embed = new Discord.MessageEmbed()
-						.setColor(0x3498DB)
-						.setTitle(`Question ${(questionNum - startQuestionNum).toString()} of ${settings.maxQuestionNum}`)
-						.setDescription("Category", "Zones")
-						.addField("Question", `**${questionText}**`)
-						// .setDescription(`**${questionText}**`)
-						.attachFiles(attachment)
-						.setImage(`attachment://${filename}`)
-						.setTimestamp()
-						.setFooter("WoW Realms Trivia Bot v1.0");
-
-					triviaChannel.send({ embed: embed }).then(questionMessage => {
-						// triviaChannel.send(`${(questionNum - startQuestionNum).toString()}. **${questionText}**`, new Discord.MessageAttachment(data, `${image}`)).then(questionMessage => {
-						attempts = 0;
-						console.log(questionText);
-						console.log(answerArray);
-						questionTimestamp = questionMessage.createdTimestamp;
-						console.log(questionTimestamp);
-						answered = false;
-					}).catch(err => {
-						console.log(localize("c_attachmentFailure", "${filename}", filename));
-						triviaChannel.send(`${(questionNum - startQuestionNum).toString()}. **${questionText}**`).then(questionMessage => {
-							attempts = 0;
-							console.log(questionText);
-							console.log(answerArray);
-							questionTimestamp = questionMessage.createdTimestamp;
-							console.log(questionTimestamp);
-							answered = false;
-						}).catch(err => {
-							questionNum--;
-							reconnect();
-						});
-					});
-				}
-			});
-			hintTimeout = setTimeout(hint, settings.hintTime);
-			skipTimeout = setTimeout(skipQuestion, settings.skipTime + 350);
-		} else { // if there's no attachment
-			triviaChannel.send(`${(questionNum - startQuestionNum).toString()}. **${questionText}**`).then(questionMessage => {
-				attempts = 0;
-				console.log(questionText);
-				console.log(answerArray);
-				questionTimestamp = questionMessage.createdTimestamp;
-				console.log(questionTimestamp);
-				answered = false;
-			}).catch(err => {
-				questionNum--;
-				reconnect();
-			});
+		try {
+			getNextQuestion = getLine();
+		} catch (err) {
+			console.log('question get error:', err);
 		}
 	}
 	else {
 		endTrivia(true);
 	}
 }
+countHint = 1;
+function hint(getNextQuestion) {
+	console.log('Here is a hint!');
 
-function hint() {
-	countHint = 1;
 	clearTimeout(questionTimeout);
-	clearTimeout(hintTimeout);
 	clearTimeout(typeTimeout);
 
 	let roundHint = '';
 
 	if (countHint % 2 !== 0) {
-		roundHint = quesion['first_hint'];
+		roundHint = getNextQuestion.firstHint;
+		const embed = new Discord.MessageEmbed()
+			.setColor(0x3498DB)
+			.setTitle(`**${localize("d_firstHintNotice")}**`)
+			.setDescription(`:point_right: ${roundHint}`)
+		triviaChannel.send({ embed: embed })
 	} else {
-		roundHint = question['second_hint']
+		roundHint = getNextQuestion.secondHint;
+		const embed = new Discord.MessageEmbed()
+			.setColor(0x3498DB)
+			.setTitle(`**${localize("d_firstHintNotice")}**)`)
+			.setDescription(`:point_right: ${roundHint}`)
+		triviaChannel.send({ embed: embed })
+		clearInterval(hintTimeout);
 	}
-	triviaChannel.send(`**${localize("d_hintNotice")}** (${localize("d_hintTypeLen")}): ${roundHint}`);
+
+	countHint += 1;
 }
-
-// function hintScramble() {
-// 	var scrambled = answerArray[0].split(" "),
-// 		n = scrambled.length;
-// 	for (var i = n - 1; i >= 0; i--) {
-// 		var scrambledWord = scrambled[i].split(""),
-// 			m = scrambledWord.length;
-// 		for (var j = m - 1; j > 0; j--) {
-// 			var k = Math.floor(Math.random() * (j + 1));
-// 			var tmp = scrambledWord[j];
-// 			scrambledWord[j] = scrambledWord[k];
-// 			scrambledWord[k] = tmp;
-// 		}
-// 		scrambled[i] = scrambledWord.join("");
-// 	}
-// 	return scrambled.join(" ");
-// }
-
-// function hintBlanks() {
-// 	var blanks = "";
-// 	var s = answerArray[0].split("");
-// 	for (var i = 0; i < s.length; i++) {
-// 		var code = s[i].charCodeAt(0);
-// 		// first character is never shown, last character is always shown
-// 		if (i === 0 || ((i !== s.length - 1) && (Math.random() < 0.40) && ((code > 47 && code < 58) || (code > 64 && code < 91) || (code > 96 && code < 123) || (local.special.indexOf(s[i]) !== -1)))) { // if part of the 60% and alphanumeric or special
-// 			blanks += "\\_";
-// 		}
-// 		else {
-// 			blanks += s[i];
-// 		}
-// 	}
-// 	return blanks;
-// }
 
 function skipQuestion() {
 	clearTimeout(questionTimeout);
@@ -556,48 +501,48 @@ function skipQuestion() {
 	}, Math.max(settings.betweenTime - 5000, 0));
 }
 
-function checkSchedule() {
-	clearTimeout(scheduleTimeout);
-	if (settings.schedule.length === 0) {
-		return;
-	} else {
-		settings.schedule = settings.schedule.sort(function (a, b) {
-			return a - b;
-		});
-		while (settings.schedule.length > 0 && settings.schedule[0] < Date.now() - 60000) {
-			var oldSchedule = settings.schedule.shift();
-		}
-		if (settings.schedule.length > 0) {
-			when = settings.schedule[0];
-		} else {
-			when = -1;
-		}
+// function checkSchedule() {
+// 	clearTimeout(scheduleTimeout);
+// 	if (settings.schedule.length === 0) {
+// 		return;
+// 	} else {
+// 		settings.schedule = settings.schedule.sort(function (a, b) {
+// 			return a - b;
+// 		});
+// 		while (settings.schedule.length > 0 && settings.schedule[0] < Date.now() - 60000) {
+// 			var oldSchedule = settings.schedule.shift();
+// 		}
+// 		if (settings.schedule.length > 0) {
+// 			when = settings.schedule[0];
+// 		} else {
+// 			when = -1;
+// 		}
 
-		if (settings.schedule[0] < Date.now() + 600000) {
-			clearTimeout(triviaTimeout);
-			triviaTimeout = setTimeout(function () {
-				if (settings.schedule[0] < Date.now()) {
-					var oldSchedule = settings.schedule.shift();
-					if (settings.schedule.length > 0) {
-						when = settings.schedule[0];
-					} else {
-						when = -1;
-					}
-				}
+// 		if (settings.schedule[0] < Date.now() + 600000) {
+// 			clearTimeout(triviaTimeout);
+// 			triviaTimeout = setTimeout(function () {
+// 				if (settings.schedule[0] < Date.now()) {
+// 					var oldSchedule = settings.schedule.shift();
+// 					if (settings.schedule.length > 0) {
+// 						when = settings.schedule[0];
+// 					} else {
+// 						when = -1;
+// 					}
+// 				}
 
-				if (!trivia && !paused && settings.autoDownload) {
-					trivia = true;
-					downloadQuestions(randomizeQuestions);
-				} else if (!trivia && !paused) {
-					trivia = true;
-					randomizeQuestions(startTrivia)
-				}
-			}, Math.max(1, settings.schedule[0] - Date.now()));
-		} else if (settings.schedule.length > 0) {
-			scheduleTimeout = setTimeout(checkSchedule, 600000);
-		}
-	}
-}
+// 				if (!trivia && !paused && settings.autoDownload) {
+// 					trivia = true;
+// 					downloadQuestions(randomizeQuestions);
+// 				} else if (!trivia && !paused) {
+// 					trivia = true;
+// 					randomizeQuestions(startTrivia)
+// 				}
+// 			}, Math.max(1, settings.schedule[0] - Date.now()));
+// 		} else if (settings.schedule.length > 0) {
+// 			scheduleTimeout = setTimeout(checkSchedule, 600000);
+// 		}
+// 	}
+// }
 
 function getOrdinal(n) {
 	return local.ordinals[n % local.ordinals.length].replace("$", n);
@@ -775,7 +720,7 @@ bot.on("message", (message) => {
 				if (settings.autoDownload) {
 					downloadQuestions(randomizeQuestions);
 				} else {
-					randomizeQuestions(startTrivia)
+					startTrivia();
 				}
 			} else if (!trivia && !paused && message.content.split(" ")[0] === "!list") { // changes trivia list
 				deleteAfter = true;
@@ -959,7 +904,7 @@ bot.on("message", (message) => {
 				var time = Math.max(1, message.content.substr(7).trim()) * 1000;
 				if (!isNaN(time)) {
 					settings.schedule.push(Date.now() + time);
-					checkSchedule();
+					// checkSchedule();
 					console.log(localize("d_timer", "${time}", time / 1000));
 					triviaChannel.send("*" + localize("d_timer", "${time}", time / 1000) + "*");
 				}
@@ -971,7 +916,7 @@ bot.on("message", (message) => {
 				var time = Math.max(Date.now() + 1000, message.content.substr(10).trim() * 1000);
 				if (!isNaN(time)) {
 					settings.schedule.push(time);
-					checkSchedule();
+					// checkSchedule();
 					console.log(localize("d_schedule", "${time}", new Date(time).toUTCString()));
 					triviaChannel.send("*" + localize("d_schedule", "${time}", new Date(time).toUTCString()) + "*");
 				}
@@ -1118,7 +1063,20 @@ bot.on("message", (message) => {
 				}
 
 				// say correct answer and who entered it
-				var winMessage = `**${localize("t_roundWinner")}**: ${message.author.toString()} **${localize("t_answer")}**: ${answerText} **${localize("t_points")}**: ${roundWinnerScore} **${localize("t_place")}**: ${getOrdinal(rank)} **${localize("t_streak")}**: ${roundWinnerStreak} **${localize("t_time")}**: ${(timeTaken / 1000).toFixed(3)} ${localize("t_sec")}`;
+
+				let winDescription = `${localize("t_answer")}: **${answerText}**. You answered in ${(timeTaken / 1000).toFixed(2)} seconds.`;
+				if (roundWinnerStreak > 1) {
+					winDescription += `\n${message.author.toString()} is currenly on a ${roundWinnerStreak} question streak!`
+				}
+
+				winAuthor = message.author.username;
+				const winMessage = new Discord.MessageEmbed()
+					.setColor(0x3498DB)
+					.setTitle(`**${localize("t_roundWinner")} ${winAuthor}!`)
+					.setDescription(`${winDescription}`)
+				//let winMessage = `**${localize("t_roundWinner")}** ${message.author.toString()}!**\n`;
+
+				// winMessage = `**${localize("t_roundWinner")}** ${message.author.toString()}!** ${localize("t_answer")}**: ${answerText} **${localize("t_streak")}**: ${roundWinnerStreak} **${localize("t_time")}**: ${(timeTaken / 1000).toFixed(2)} ${localize("t_sec")}`;
 				debugger;
 				if (answerImage !== "") { // answer attachments
 					fs.readFile(answerImage, (err, data) => {
@@ -1127,12 +1085,11 @@ bot.on("message", (message) => {
 						} else {
 							message.channel.send(winMessage, new Discord.MessageAttachment(data, path.basename(answerImage))).catch(err => {
 								console.log(localize("c_attachmentFailure", "${filename}", answerImage));
-								message.channel.send(winMessage);
 							});
 						}
 					});
 				} else {
-					message.channel.send(winMessage);
+					message.channel.send({ embed: winMessage });
 				}
 				console.log(`${localize("t_roundWinner")}: ${message.author.username} ${message.author.toString()} ${localize("t_answer")}: ${message.content} ${localize("t_points")}: ${roundWinnerScore} ${localize("t_place")}: ${getOrdinal(rank)} ${localize("t_streak")}: ${roundWinnerStreak} ${localize("t_time")}: ${(timeTaken / 1000).toFixed(3)} ${localize("t_sec")}`);
 
@@ -1216,7 +1173,7 @@ rl.on("line", (line) => {
 			if (settings.autoDownload) {
 				downloadQuestions(randomizeQuestions);
 			} else {
-				randomizeQuestions(startTrivia);
+				startTrivia();
 			}
 		} else {
 			console.log(localize("c_channelNotFound"));
@@ -1411,33 +1368,33 @@ rl.on("line", (line) => {
 		});
 	}
 
-	else if (!trivia && line.split(" ")[0] === "!timer") {
-		if (triviaChannel == null) {
-			console.log(localize("c_channelNotFound"));
-		} else {
-			var time = Math.max(1, line.substr(7).trim()) * 1000;
-			if (!isNaN(time)) {
-				settings.schedule.push(Date.now() + time);
-				checkSchedule();
-				console.log(localize("d_timer", "${time}", time / 1000));
-				triviaChannel.send("*" + localize("d_timer", "${time}", time / 1000) + "*");
-			}
-		}
-	}
+	// else if (!trivia && line.split(" ")[0] === "!timer") {
+	// 	if (triviaChannel == null) {
+	// 		console.log(localize("c_channelNotFound"));
+	// 	} else {
+	// 		var time = Math.max(1, line.substr(7).trim()) * 1000;
+	// 		if (!isNaN(time)) {
+	// 			settings.schedule.push(Date.now() + time);
+	// 			checkSchedule();
+	// 			console.log(localize("d_timer", "${time}", time / 1000));
+	// 			triviaChannel.send("*" + localize("d_timer", "${time}", time / 1000) + "*");
+	// 		}
+	// 	}
+	// }
 
-	else if (!trivia && line.split(" ")[0] === "!schedule") {
-		if (triviaChannel == null) {
-			console.log(localize("c_channelNotFound"));
-		} else {
-			var time = Math.max(Date.now() + 1000, message.content.substr(10).trim() * 1000);
-			if (!isNaN(time)) {
-				settings.schedule.push(time);
-				checkSchedule();
-				console.log(localize("d_schedule", "${time}", new Date(time).toUTCString()));
-				triviaChannel.send("*" + localize("d_schedule", "${time}", new Date(time).toUTCString()) + "*");
-			}
-		}
-	}
+	// else if (!trivia && line.split(" ")[0] === "!schedule") {
+	// 	if (triviaChannel == null) {
+	// 		console.log(localize("c_channelNotFound"));
+	// 	} else {
+	// 		var time = Math.max(Date.now() + 1000, message.content.substr(10).trim() * 1000);
+	// 		if (!isNaN(time)) {
+	// 			settings.schedule.push(time);
+	// 			checkSchedule();
+	// 			console.log(localize("d_schedule", "${time}", new Date(time).toUTCString()));
+	// 			triviaChannel.send("*" + localize("d_schedule", "${time}", new Date(time).toUTCString()) + "*");
+	// 		}
+	// 	}
+	// }
 
 	else if (line === "!emoji") {
 		var allEmoji = "Emoji: " + fs.readFileSync("local_" + settings.lang + ".txt", "utf8").replace(/^\uFEFF/, '').match(/<:.*?:\d*?>/g).join();
@@ -1445,9 +1402,9 @@ rl.on("line", (line) => {
 		triviaChannel.send(allEmoji);
 	}
 
-	else if (line === "!randomize") {
-		randomizeQuestions();
-	}
+	// else if (line === "!randomize") {
+	// 	randomizeQuestions();
+	// }
 
 	else {
 		try {
@@ -1471,7 +1428,7 @@ bot.on('ready', () => {
 	}
 	console.log(localize("c_startBot"));
 	bot.user.setPresence({ status: "idle", activity: { type: 0, name: "" } });
-	checkSchedule();
+	// checkSchedule();
 });
 
 questionNum--;

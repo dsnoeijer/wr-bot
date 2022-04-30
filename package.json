@@ -5,6 +5,7 @@
     "node": "16.x"
   },
   "dependencies": {
+    "axios": "^0.27.2",
     "cors": "^2.8.5",
     "discord.js": "^12.4.1",
     "dotenv": "^16.0.0",

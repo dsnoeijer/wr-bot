@@ -1,9 +1,25 @@
 var express = require('express');
 var router = express.Router();
 const multer = require('multer');
-const upload = multer({ dest: 'uploads/' });
+// const upload = multer({ dest: 'uploads/' });
 const addQuestions = require('../controllers/addQuestion');
+const listQuestions = require('../controllers/listQuestions');
+const getQuestion = require('../controllers/getQuestion');
 
+
+const multerStorage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, "uploads/");
+    },
+    filename: (req, file, cb) => {
+        const ext = file.mimetype.split("/")[1];
+        cb(null, `/${file.originalname}`);
+    },
+});
+
+const upload = multer({
+    storage: multerStorage
+})
 
 // Home page
 router.get("/", (req, res) => {
@@ -11,19 +27,10 @@ router.get("/", (req, res) => {
 });
 
 // Getting all questions
-router.get('/questions', async (req, res) => {
-    try {
-        const questions = await Questions.find();
-        res.json(questions);
-    } catch {
-        res.status(500).json({ message: err.messge });
-    }
-})
+router.get('/questions', listQuestions.listQuestions);
 
 // Getting one question
-router.get('/question', (req, res) => {
-    res.render("home");
-})
+router.get('/question', getQuestion.getQuestion);
 
 // Updating a question
 router.post('/update', (req, res) => {
