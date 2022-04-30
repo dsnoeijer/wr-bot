@@ -1,4 +1,5 @@
 ﻿// Trivia bot for Discord
+require('dotenv').config();
 const Discord = require("discord.js");
 const fs = require("fs");
 const path = require("path");
@@ -13,14 +14,15 @@ const rl = readline.createInterface(process.stdin, process.stdout);
 const axios = require('axios');
 
 
+
 rl.setPrompt("");
 
-var versionString = "1.0";
+let versionString = "1.0";
 console.log("The trivia bot has been launched. (v" + versionString + ")");
 
 // load settings from settings.txt
-var settings = {};
-var local = {};
+let settings = {};
+let local = {};
 try {
 	settings = JSON.parse(`{${fs.readFileSync("settings.txt", "utf8").replace(/^\uFEFF/, '')}}`);
 	console.log("settings.txt loaded");
@@ -45,10 +47,12 @@ try {
 		triviaChannel: "",
 		musicChannel: "",
 		schedule: [],
-		debug: false,
-		token: ""
+		debug: false
 	}
 }
+
+const token = process.env.BOT_TOKEN;
+const database = process.env.DB;
 
 try {
 	local = JSON.parse("{" + fs.readFileSync("local_" + settings.lang + ".txt", "utf8").replace(/^\uFEFF/, '') + "}");
@@ -58,67 +62,66 @@ try {
 	process.exit();
 }
 
-var reload = false;
-var questionNum = 1;
-var lastRoundWinner = "null";
-var roundWinnerScore = 0;
-var roundWinnerStreak = 0;
-var lastBestTimePlayer = "null";
-var lastBestTime = 0;
-var lastBestStreakPlayer = "null";
-var lastBestStreak = 0;
-var players = [];
+let reload = false;
+let questionNum = 1;
+let lastRoundWinner = "null";
+let roundWinnerScore = 0;
+let roundWinnerStreak = 0;
+let lastBestTimePlayer = "null";
+let lastBestTime = 0;
+let lastBestStreakPlayer = "null";
+let lastBestStreak = 0;
+let players = [];
 
 /* defaults
 
-var reload = false;
-var questionNum = 1;
-var lastRoundWinner = "null";
-var roundWinnerScore = 0;
-var roundWinnerStreak = 0;
-var lastBestTimePlayer = "null";
-var lastBestTime = 0;
-var lastBestStreakPlayer = "null";
-var lastBestStreak = 0;
-var players = [];
+let reload = false;
+let questionNum = 1;
+let lastRoundWinner = "null";
+let roundWinnerScore = 0;
+let roundWinnerStreak = 0;
+let lastBestTimePlayer = "null";
+let lastBestTime = 0;
+let lastBestStreakPlayer = "null";
+let lastBestStreak = 0;
+let players = [];
 
 */
 
-var trivia = false;
-var paused = false;
-var exit = false;
-var startQuestionNum = questionNum;
-var questionTimestamp = 0;
-var answerText = "";
-var answerImage = "";
-var answerMusic = "";
-var answerArray = [];
-var answered = true;
-var questionTimeout;
-var hintTimeout;
-var skipTimeout;
-var typeTimeout;
-var triviaTimeout;
-var scheduleTimeout;
-var when = -1;
-var triviaChannel;
-var musicChannel;
-var allQuestionNum;
-var tieQuestionNum = 0;
-var attempts = 0;
-var topTen = localize("d_topTenDefault");
-var resultsFilename = "";
+let trivia = false;
+let paused = false;
+let exit = false;
+let startQuestionNum = questionNum;
+let questionTimestamp = 0;
+let answerText = "";
+let answerImage = "";
+let answerMusic = "";
+let answerArray = [];
+let answered = true;
+let questionTimeout;
+let hintTimeout;
+let skipTimeout;
+let typeTimeout;
+let triviaTimeout;
+let scheduleTimeout;
+let when = -1;
+let triviaChannel;
+let musicChannel;
+let allQuestionNum;
+let tieQuestionNum = 0;
+let attempts = 0;
+let topTen = localize("d_topTenDefault");
+let resultsFilename = "";
 
 function getLine() {
-
-	let host = 'http://localhost:3000/question';
+	answerArray = [];
+	let host = `${database}question`;
 	axios.get(host)
 		.then((data) => {
-			console.log(data.data);
-			// console.log('There be data here:', data.data);
+
 			let getNextQuestion = data.data[0];
 			questionNum++;
-			var questionText = getNextQuestion.title;
+			let questionText = getNextQuestion.title;
 			getAnswers = getNextQuestion.answer.split(",");
 
 			for (const answer in getAnswers) {
@@ -146,14 +149,12 @@ function getLine() {
 							.setTitle(`Question ${(questionNum - startQuestionNum).toString()} of ${settings.maxQuestionNum}`)
 							.setDescription("Category", "Zones")
 							.addField("Question", `**${questionText}**`)
-							// .setDescription(`**${questionText}**`)
 							.attachFiles(attachment)
 							.setImage(`attachment://${filename}`)
 							.setTimestamp()
 							.setFooter("WoW Realms Trivia Bot v1.0");
 
 						triviaChannel.send({ embed: embed }).then(questionMessage => {
-							// triviaChannel.send(`${(questionNum - startQuestionNum).toString()}. **${questionText}**`, new Discord.MessageAttachment(data, `${image}`)).then(questionMessage => {
 							attempts = 0;
 							console.log(questionText);
 							console.log(answerArray);
@@ -192,12 +193,10 @@ function getLine() {
 			hintTimeout = setInterval(hint, settings.hintTime, getNextQuestion);
 			skipTimeout = setTimeout(skipQuestion, settings.skipTime + 350);
 		})
-
-
 }
 
 function localize(line, arg1a, arg1b, arg2a, arg2b, arg3a, arg3b, arg4a, arg4b) {
-	var data = local[line];
+	let data = local[line];
 	if (!arg1a || !arg1b) {
 		return eval("`" + data + "`");
 
@@ -266,7 +265,7 @@ function endTrivia(finished) {
 	clearTimeout(skipTimeout);
 	clearTimeout(typeTimeout);
 	clearTimeout(scheduleTimeout);
-	outputScores(false);
+	outputScores(true);
 
 	triviaChannel.stopTyping();
 
@@ -277,19 +276,23 @@ function endTrivia(finished) {
 			triviaChannel.send(localize("d_stop"), { tts: settings.tts });
 		}
 
-		var streaks = players.map(function (a) {
+		let streaks = players.map(function (a) {
 			return a.streak;
 		});
-		var bestTimes = players.map(function (a) {
+		let bestTimes = players.map(function (a) {
 			return a.bestTime;
 		});
-		var avgTimes = players.map(function (a) {
+		let avgTimes = players.map(function (a) {
 			return a.time / a.score;
 		});
 
-		var bestStreak = streaks.indexOf(Math.max.apply(Math, streaks)); // get index of player with best streak
-		var bestBestTime = bestTimes.indexOf(Math.min.apply(Math, bestTimes)); // get index of player with best best time
-		var bestAvgTime = avgTimes.indexOf(Math.min.apply(Math, avgTimes)); // get index of player with best average time
+		let bestStreak = streaks.indexOf(Math.max.apply(Math, streaks)); // get index of player with best streak
+		let bestBestTime = bestTimes.indexOf(Math.min.apply(Math, bestTimes)); // get index of player with best best time
+		let bestAvgTime = avgTimes.indexOf(Math.min.apply(Math, avgTimes)); // get index of player with best average time
+
+		if (players.length > 0) {
+			triviaChannel.send(((typeof players[0] !== "undefined") ? `**${localize("t_first")}**: <@${players[0].id}> **${localize("t_points")}**: ${players[0].score} **${localize("t_bestStreak")}**: ${players[0].streak} **${localize("t_avgTime")}**: ${(players[0].time / players[0].score / 1000).toFixed(3)} ${localize("t_sec")} **${localize("t_bestTime")}**: ${(players[0].bestTime / 1000).toFixed(3)} ${localize("t_sec")}\n` + ((typeof players[1] !== "undefined") ? `**${localize("t_second")}**: <@${players[1].id}> **${localize("t_points")}**: ${players[1].score} **${localize("t_bestStreak")}**: ${players[1].streak} **${localize("t_avgTime")}**: ${(players[1].time / players[1].score / 1000).toFixed(3)} ${localize("t_sec")} **${localize("t_bestTime")}**: ${(players[1].bestTime / 1000).toFixed(3)} ${localize("t_sec")}\n` : "") + ((typeof players[2] !== "undefined") ? `**${localize("t_third")}**: <@${players[2].id}> **${localize("t_points")}**: ${players[2].score} **${localize("t_bestStreak")}**: ${players[2].streak} **${localize("t_avgTime")}**: ${(players[2].time / players[2].score / 1000).toFixed(3)} ${localize("t_sec")} **${localize("t_bestTime")}**: ${(players[2].bestTime / 1000).toFixed(3)} ${localize("t_sec")}\n` : "") + `\n**${localize("t_bestBestStreak")}**: <@${players[bestStreak].id}> ${localize("t_with")} ${players[bestStreak].streak}\n**${localize("t_bestBestTime")}**: <@${players[bestBestTime].id}> ${localize("t_with")} ${(players[bestBestTime].bestTime / 1000).toFixed(3)} ${localize("t_sec")}\n**${localize("t_bestAvgTime")}**: <@${players[bestAvgTime].id}> ${localize("t_with")} ${(players[bestAvgTime].time / players[bestAvgTime].score / 1000).toFixed(3)} ${localize("t_sec")}` : ""));
+		}
 	}
 
 	trivia = false;
@@ -303,7 +306,7 @@ function endTrivia(finished) {
 }
 
 function outputScores(debug) {
-	var outputFilename = `results${Date.now()}.html`;
+	let outputFilename = `results${Date.now()}.html`;
 	resultsFilename = "";
 
 	fs.writeFileSync(`results${Date.now()}.json`, `{
@@ -329,12 +332,12 @@ function outputScores(debug) {
 		fs.appendFileSync(outputFilename, ">(ended");
 	}
 	fs.appendFileSync(outputFilename, ` at ${(new Date()).toUTCString()})</p>\n<table border=\"1\">\n<tr><th>Rank</th><th>Name</th><th>User ID</th><th>Score</th><th>Best Streak</th><th>Best Time</th><th>Avg. Time</th></tr>`);
-	for (var i = 0; i < players.length; i++) {
+	for (let i = 0; i < players.length; i++) {
 		fs.appendFileSync(outputFilename, `\n<tr><td>${getOrdinal(i + 1)}</td><td>${players[i].name}</td><td>&lt;@${players[i].id}&gt;</td><td>${players[i].score}</td><td>${players[i].streak}</td><td>${(players[i].bestTime / 1000).toFixed(3)}</td><td>${(players[i].time / players[i].score / 1000).toFixed(3)}</td></tr>`);
 	}
 	fs.appendFileSync(outputFilename, "\n</table>\n<p>Discord Trivia Bot (v" + versionString + ")</p>");
 	if (debug) {
-		fs.appendFileSync(outputFilename, `\n<h2>Error info:</h2><ul>\n<li>var reload = true;</li>\n<li>var questionNum = ${questionNum};</li>\n<li>var lastRoundWinner = "${lastRoundWinner}";</li>\n<li>var roundWinnerScore = ${roundWinnerScore};</li>\n<li>var roundWinnerStreak = ${roundWinnerStreak};</li>\n<li>var lastBestTimePlayer = "${lastBestTimePlayer}";</li>\n<li>var lastBestTime = ${lastBestTime};</li>\n<li>var lastBestStreakPlayer = "${lastBestStreakPlayer}";</li>\n<li>var lastBestStreak = ${lastBestStreak};</li>\n<li>var players = ${JSON.stringify(players)};</li>`);
+		fs.appendFileSync(outputFilename, `\n<h2>Error info:</h2><ul>\n<li>let reload = true;</li>\n<li>let questionNum = ${questionNum};</li>\n<li>let lastRoundWinner = "${lastRoundWinner}";</li>\n<li>let roundWinnerScore = ${roundWinnerScore};</li>\n<li>let roundWinnerStreak = ${roundWinnerStreak};</li>\n<li>let lastBestTimePlayer = "${lastBestTimePlayer}";</li>\n<li>let lastBestTime = ${lastBestTime};</li>\n<li>let lastBestStreakPlayer = "${lastBestStreakPlayer}";</li>\n<li>let lastBestStreak = ${lastBestStreak};</li>\n<li>let players = ${JSON.stringify(players)};</li>`);
 	}
 	fs.appendFileSync(outputFilename, "\n</body>\n</html>");
 }
@@ -355,14 +358,14 @@ function downloadQuestions(callback) {
 
 function clean(unclean) {
 	unclean = unclean.toLowerCase();
-	for (var i = 0; i < local.clean.length; i++) {
+	for (let i = 0; i < local.clean.length; i++) {
 		unclean = unclean.replace(new RegExp(local.clean[i][0], "g"), local.clean[i][1]);
 	}
 	return unclean.trim();
 }
 
 function cleanTypos(unclean) {
-	for (var i = 0; i < local.typos.length; i++) {
+	for (let i = 0; i < local.typos.length; i++) {
 		unclean = unclean.replace(new RegExp(local.typos[i][0], "g"), local.typos[i][1]);
 	}
 	return unclean;
@@ -370,8 +373,8 @@ function cleanTypos(unclean) {
 
 function parseAnswer(answer, correct) {
 	// string is lowercased, trimmed, and multiple spaces removed, accented characters are normalized, & is turned to and, all non-alphanumeric characters removed
-	var cleanAnswer = clean(answer);
-	for (var i = 0; i < correct.length; i++) {
+	let cleanAnswer = clean(answer);
+	for (let i = 0; i < correct.length; i++) {
 		// each answer choice is cleaned and compared
 		if (!settings.containsAnswer && ((answer === correct[i]) || (cleanAnswer.length > 0 && ((cleanAnswer === clean(correct[i])) || (cleanTypos(cleanAnswer) === cleanTypos(clean(correct[i]))))))) {
 			// exact match
@@ -403,7 +406,7 @@ function askQuestion() {
 	// continue unless we've reached maxQuestionNum
 	if (questionNum < (settings.maxQuestionNum + tieQuestionNum) && trivia) {
 		if (attempts > 0) {
-			bot.login(settings.token).then(() => {
+			bot.login(token).then(() => {
 				attempts = 0;
 			}).catch(err => {
 				reconnect();
@@ -501,49 +504,6 @@ function skipQuestion() {
 	}, Math.max(settings.betweenTime - 5000, 0));
 }
 
-// function checkSchedule() {
-// 	clearTimeout(scheduleTimeout);
-// 	if (settings.schedule.length === 0) {
-// 		return;
-// 	} else {
-// 		settings.schedule = settings.schedule.sort(function (a, b) {
-// 			return a - b;
-// 		});
-// 		while (settings.schedule.length > 0 && settings.schedule[0] < Date.now() - 60000) {
-// 			var oldSchedule = settings.schedule.shift();
-// 		}
-// 		if (settings.schedule.length > 0) {
-// 			when = settings.schedule[0];
-// 		} else {
-// 			when = -1;
-// 		}
-
-// 		if (settings.schedule[0] < Date.now() + 600000) {
-// 			clearTimeout(triviaTimeout);
-// 			triviaTimeout = setTimeout(function () {
-// 				if (settings.schedule[0] < Date.now()) {
-// 					var oldSchedule = settings.schedule.shift();
-// 					if (settings.schedule.length > 0) {
-// 						when = settings.schedule[0];
-// 					} else {
-// 						when = -1;
-// 					}
-// 				}
-
-// 				if (!trivia && !paused && settings.autoDownload) {
-// 					trivia = true;
-// 					downloadQuestions(randomizeQuestions);
-// 				} else if (!trivia && !paused) {
-// 					trivia = true;
-// 					randomizeQuestions(startTrivia)
-// 				}
-// 			}, Math.max(1, settings.schedule[0] - Date.now()));
-// 		} else if (settings.schedule.length > 0) {
-// 			scheduleTimeout = setTimeout(checkSchedule, 600000);
-// 		}
-// 	}
-// }
-
 function getOrdinal(n) {
 	return local.ordinals[n % local.ordinals.length].replace("$", n);
 }
@@ -582,9 +542,9 @@ bot.on("disconnect", (error) => {
 });
 
 bot.on("message", (message) => {
-	var deleteAfter = false;
+	let deleteAfter = false;
 	// sets trivia channel
-	var privileged;
+	let privileged;
 	if (triviaChannel != null) {
 		if (triviaChannel.permissionsFor(message.author) == null) {
 			privileged = false;
@@ -604,26 +564,26 @@ bot.on("message", (message) => {
 
 	// if anyone says "!info" in the chat or DM it, they get a DM with their current score and place
 	if (message.content === "!info") {
-		var authorIndex;
-		for (var i = 0; i < players.length; i++) {
+		let authorIndex;
+		for (let i = 0; i < players.length; i++) {
 			if (players[i].id === message.author.id) {
 				authorIndex = i;
 				break;
 			}
 		}
 		if (typeof players[authorIndex] === "undefined") { // if the user hasn't played
-			var score = "0";
-			var streak = 0;
-			var place = "—";
-			var bestTime = "—";
-			var avgTime = "—";
+			let score = "0";
+			let streak = 0;
+			let place = "—";
+			let bestTime = "—";
+			let avgTime = "—";
 		} else {
-			var score = players[authorIndex].score;
-			var streak = players[authorIndex].streak;
-			var place = getOrdinal(authorIndex + 1);
-			var bestTime = (players[authorIndex].bestTime / 1000).toFixed(3);
-			var time = players[authorIndex].time;
-			var avgTime = (time / score / 1000).toFixed(3);
+			let score = players[authorIndex].score;
+			let streak = players[authorIndex].streak;
+			let place = getOrdinal(authorIndex + 1);
+			let bestTime = (players[authorIndex].bestTime / 1000).toFixed(3);
+			let time = players[authorIndex].time;
+			let avgTime = (time / score / 1000).toFixed(3);
 		}
 		message.author.send(`${localize("d_info")}:\n**${localize("t_points")}**: ${score} **${localize("t_place")}**: ${place} **${localize("t_bestStreak")}**: ${streak} **${localize("t_bestTime")}**: ${bestTime} ${localize("t_sec")} **${localize("t_avgTime")}**: ${avgTime} ${localize("t_sec")}`);
 		deleteAfter = true;
@@ -724,7 +684,7 @@ bot.on("message", (message) => {
 				}
 			} else if (!trivia && !paused && message.content.split(" ")[0] === "!list") { // changes trivia list
 				deleteAfter = true;
-				var filepath = message.content.substr(6).trim();
+				let filepath = message.content.substr(6).trim();
 				if (filepath.slice(-4).toLowerCase() !== ".txt") {
 					filepath = filepath + ".txt"
 				}
@@ -814,7 +774,7 @@ bot.on("message", (message) => {
 				}
 			} else if (!trivia && !paused && message.content.split(" ")[0] === "!questions") { // changes number of questions
 				deleteAfter = true;
-				var newQuestions = Math.max(1, parseInt(message.content.substr(11).trim(), 10));
+				let newQuestions = Math.max(1, parseInt(message.content.substr(11).trim(), 10));
 				if (isNaN(newQuestions)) {
 					newQuestions = settings.maxQuestionNum;
 				}
@@ -854,7 +814,7 @@ bot.on("message", (message) => {
 					resultsFilename = resultsFilename + ".txt"
 				}
 				try {
-					var data = fs.readFileSync(resultsFilename, "utf8");
+					let data = fs.readFileSync(resultsFilename, "utf8");
 					settings = JSON.parse(`{${data.replace(/^\uFEFF/, '')}}`);
 					fs.writeFileSync("settings.txt", data);
 					console.log(localize("c_settingsLoaded"));
@@ -901,7 +861,7 @@ bot.on("message", (message) => {
 					triviaChannel = message.channel;
 				}
 				deleteAfter = true;
-				var time = Math.max(1, message.content.substr(7).trim()) * 1000;
+				let time = Math.max(1, message.content.substr(7).trim()) * 1000;
 				if (!isNaN(time)) {
 					settings.schedule.push(Date.now() + time);
 					// checkSchedule();
@@ -913,7 +873,7 @@ bot.on("message", (message) => {
 					triviaChannel = message.channel;
 				}
 				deleteAfter = true;
-				var time = Math.max(Date.now() + 1000, message.content.substr(10).trim() * 1000);
+				let time = Math.max(Date.now() + 1000, message.content.substr(10).trim() * 1000);
 				if (!isNaN(time)) {
 					settings.schedule.push(time);
 					// checkSchedule();
@@ -922,7 +882,7 @@ bot.on("message", (message) => {
 				}
 			} else if (message.content === "!emoji") {
 				deleteAfter = true;
-				var allEmoji = "Emoji: " + fs.readFileSync("local_" + settings.lang + ".txt", "utf8").replace(/^\uFEFF/, '').match(/<:.*?:\d*?>/g).join();
+				let allEmoji = "Emoji: " + fs.readFileSync("local_" + settings.lang + ".txt", "utf8").replace(/^\uFEFF/, '').match(/<:.*?:\d*?>/g).join();
 				console.log(allEmoji);
 				triviaChannel.send(allEmoji);
 			} else if (!answered && !settings.anyoneAnswer && privileged && parseAnswer(message.content, answerArray)) {
@@ -932,9 +892,9 @@ bot.on("message", (message) => {
 
 		// if answer is correct
 		if (!answered && (settings.anyoneAnswer || !privileged) && parseAnswer(message.content, answerArray)) {
-			var timeTaken = message.createdTimestamp - questionTimestamp;
-			var winnerIndex = -1;
-			for (var i = 0; i < players.length; i++) {
+			let timeTaken = message.createdTimestamp - questionTimestamp;
+			let winnerIndex = -1;
+			for (let i = 0; i < players.length; i++) {
 				if (players[i].id === message.author.id) {
 					winnerIndex = i;
 					break;
@@ -954,7 +914,7 @@ bot.on("message", (message) => {
 			} else {
 				clearTimeout(hintTimeout);
 				clearTimeout(skipTimeout);
-				var oldRank;
+				let oldRank;
 				if (winnerIndex === -1) { // if player hasn't won before
 					players.push({
 						id: message.author.id,
@@ -993,8 +953,8 @@ bot.on("message", (message) => {
 				}
 
 				// calculate player rank
-				var rank;
-				for (var i = 0; i < players.length; i++) {
+				let rank;
+				for (let i = 0; i < players.length; i++) {
 					if (players[i].id === message.author.id) {
 						rank = i + 1;
 						break;
@@ -1047,7 +1007,7 @@ bot.on("message", (message) => {
 				}
 
 				// sends message based on streak
-				for (var i = 0; i < local.streakMsg.length; i++) {
+				for (let i = 0; i < local.streakMsg.length; i++) {
 					if (local.streakMsg[i][0] === roundWinnerStreak) {
 						message.channel.send(local.streakMsg[i][1].replace(new RegExp("\\$\\{bot\\.user\\.toString\\(\\)\\}", "g"), bot.user.toString()).replace(new RegExp("\\$\\{message\\.author\\.toString\\(\\)\\}", "g"), message.author.toString()));
 						break;
@@ -1055,7 +1015,7 @@ bot.on("message", (message) => {
 				}
 
 				// sends message based on points
-				for (var i = 0; i < local.scoreMsg.length; i++) {
+				for (let i = 0; i < local.scoreMsg.length; i++) {
 					if (local.scoreMsg[i][0] === roundWinnerScore) {
 						message.channel.send(local.scoreMsg[i][1].replace(new RegExp("\\$\\{bot\\.user\\.toString\\(\\)\\}", "g"), bot.user.toString()).replace(new RegExp("\\$\\{message\\.author\\.toString\\(\\)\\}", "g"), message.author.toString()));
 						break;
@@ -1108,7 +1068,7 @@ bot.on("message", (message) => {
 				}
 
 				// update top ten information
-				var place = 0;
+				let place = 0;
 				topTen = localize("t_topTen") + ":";
 				if (players.length === 0) {
 					topTen = localize("d_topTenDefault");
@@ -1181,7 +1141,7 @@ rl.on("line", (line) => {
 	}
 
 	else if (!trivia && !paused && line.split(" ")[0] === "!list") {
-		var filepath = line.substr(6).trim();
+		let filepath = line.substr(6).trim();
 		if (filepath.slice(-4).toLowerCase() !== ".txt") {
 			filepath = filepath + ".txt"
 		}
@@ -1274,7 +1234,7 @@ rl.on("line", (line) => {
 	}
 
 	else if (!trivia && !paused && line.split(" ")[0] === "!questions") { // changes number of questions
-		var newQuestions = Math.max(1, parseInt(line.substr(11).trim(), 10));
+		let newQuestions = Math.max(1, parseInt(line.substr(11).trim(), 10));
 		if (isNaN(newQuestions)) {
 			newQuestions = settings.maxQuestionNum;
 		}
@@ -1318,7 +1278,7 @@ rl.on("line", (line) => {
 			filename = filename + ".txt"
 		}
 		try {
-			var data = fs.readFileSync(filename, "utf8");
+			let data = fs.readFileSync(filename, "utf8");
 			fs.writeFileSync("settings.txt", data);
 			console.log(localize("c_settingsLoaded"));
 			settings = JSON.parse(`{${data.replace(/^\uFEFF/, '')}}`);
@@ -1372,7 +1332,7 @@ rl.on("line", (line) => {
 	// 	if (triviaChannel == null) {
 	// 		console.log(localize("c_channelNotFound"));
 	// 	} else {
-	// 		var time = Math.max(1, line.substr(7).trim()) * 1000;
+	// 		let time = Math.max(1, line.substr(7).trim()) * 1000;
 	// 		if (!isNaN(time)) {
 	// 			settings.schedule.push(Date.now() + time);
 	// 			checkSchedule();
@@ -1386,7 +1346,7 @@ rl.on("line", (line) => {
 	// 	if (triviaChannel == null) {
 	// 		console.log(localize("c_channelNotFound"));
 	// 	} else {
-	// 		var time = Math.max(Date.now() + 1000, message.content.substr(10).trim() * 1000);
+	// 		let time = Math.max(Date.now() + 1000, message.content.substr(10).trim() * 1000);
 	// 		if (!isNaN(time)) {
 	// 			settings.schedule.push(time);
 	// 			checkSchedule();
@@ -1397,7 +1357,7 @@ rl.on("line", (line) => {
 	// }
 
 	else if (line === "!emoji") {
-		var allEmoji = "Emoji: " + fs.readFileSync("local_" + settings.lang + ".txt", "utf8").replace(/^\uFEFF/, '').match(/<:.*?:\d*?>/g).join();
+		let allEmoji = "Emoji: " + fs.readFileSync("local_" + settings.lang + ".txt", "utf8").replace(/^\uFEFF/, '').match(/<:.*?:\d*?>/g).join();
 		console.log(allEmoji);
 		triviaChannel.send(allEmoji);
 	}
@@ -1432,7 +1392,7 @@ bot.on('ready', () => {
 });
 
 questionNum--;
-bot.login(settings.token).catch(err => {
+bot.login(token).catch(err => {
 	console.log(localize("c_loginError"));
 	process.exit();
 });
